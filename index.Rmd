@@ -1,0 +1,1422 @@
+---
+title: 'Reproducible report: Incidence-severity relationships in unmanaged and fungicide-protected wheat head blast epidemics in Brazil'
+output:
+  html_document:
+    css: style.css
+    depth: 5
+    number_sections: no
+    theme: default
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+date: 'Created: 2021-10-06 <br/>Last update: `r Sys.Date()`'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Packages 
+```{r message=FALSE, warning=FALSE}
+
+library(tidyverse)
+library(ggplot2)
+library(metafor)
+library(car)
+library(ggthemes)
+library(cowplot)
+library(scales)
+library(dplyr)
+library(readxl)
+library(lme4)
+library(lmerTest)
+library(report)
+library(patchwork)
+library(merTools)
+library(ciTools)
+library(parameters)
+library(performance)
+library(see)
+library(data.table)
+
+```
+ 
+
+# Importing data 
+
+```{r}
+
+data_epamig <- read_excel("Data/data_epamig.xlsx")
+general_slim_data <- read_excel("Data/generalslim_data.xlsx")
+
+
+```
+
+
+```{r}
+
+general_slim_data %>%
+  ggplot(aes(inc_mean, index_mean))+
+  geom_point()+
+  geom_smooth()+
+  facet_wrap( ~ source)
+
+```
+
+
+
+# Summary and data transformation 
+
+```{r}
+
+epamig_data <- data_epamig %>% 
+  mutate(idx = (inc*dhs)/100) %>% 
+  relocate(idx, .before = tgw) %>% 
+  mutate(clog_inc = log(-log(1 - (inc/100))),
+         clog_idx = log(-log(1 - (idx/100)))) %>% 
+  dplyr::filter(idx > 0) %>% 
+  dplyr::filter(!cultivar == "SINTONIA")
+
+rede_data <- general_slim_data %>% 
+  dplyr::filter(source == "REC-Embrapa") %>% 
+  dplyr::filter(index_mean > 0) %>% 
+  mutate(inc_rede = case_when(inc_mean == 100 ~ 99,
+                              inc_mean <= 99.9 ~ inc_mean),
+         idx_rede = case_when(index_mean == 100 ~ 99,
+                              index_mean <= 99.9 ~ index_mean)) %>% 
+  mutate(clog_inc = log(-log(1 - (inc_rede/100))),
+         clog_idx = log(-log(1 - (idx_rede/100))))
+  
+
+```
+
+# Interactions 
+```{r}
+
+aa <- lm(clog_idx ~ clog_inc*year, data = epamig_data)
+bb <- lm(clog_idx ~ clog_inc*cultivar, data = epamig_data)
+
+anova(aa)
+anova(bb)
+
+
+```
+
+
+# Separating the EPAMIG data for each year
+
+```{r}
+
+data_2013 <- epamig_data %>% 
+  filter(year == 2013)
+
+data_2014 <- epamig_data %>% 
+  filter(year == 2014)
+
+data_2015 <- epamig_data %>% 
+  filter(year == 2015)
+
+data_2016 <- epamig_data %>% 
+  filter(year == 2016)
+
+data_2017 <- epamig_data %>% 
+  filter(year == 2017)
+
+data_2018 <- epamig_data %>% 
+  filter(year == 2018)
+
+data_2019 <- epamig_data %>% 
+  filter(year == 2019)
+```
+
+# Linear Regression model 
+
+## UFTs data
+```{r}
+lm_pooled_rede <- lm(clog_idx ~ clog_inc, data = rede_data)
+summary(lm_pooled_rede)
+report(lm_pooled_rede)
+anova(lm_pooled_rede)
+car::linearHypothesis(lm_pooled_rede, "clog_inc = 1")
+```
+
+## EPAMIG pooled data 
+```{r}
+lm_pooled <- lm(clog_idx ~ clog_inc, data = epamig_data)
+summary(lm_pooled)
+report(lm_pooled)
+anova(lm_pooled)
+car::linearHypothesis(lm_pooled, "clog_inc = 1")
+```
+
+## 2013
+```{r}
+lm_2013 <- lm(clog_idx ~ clog_inc, data = data_2013)
+summary(lm_2013)
+report(lm_2013)
+anova(lm_2013)
+car::linearHypothesis(lm_2013, "clog_inc = 1")
+```
+
+## 2014
+```{r}
+lm_2014 <- lm(clog_idx ~ clog_inc, data = data_2014)
+summary(lm_2014)
+anova(lm_2014)
+report(lm_2014)
+car::linearHypothesis(lm_2014, "clog_inc = 1")
+```
+
+## 2015
+```{r}
+lm_2015 <- lm(clog_idx ~ clog_inc, data = data_2015)
+summary(lm_2015)
+anova(lm_2015)
+report(lm_2015)
+car::linearHypothesis(lm_2015, "clog_inc = 1")
+```
+
+## 2016
+```{r}
+lm_2016 <- lm(clog_idx ~ clog_inc, data = data_2016)
+summary(lm_2016)
+anova(lm_2016)
+report(lm_2016)
+car::linearHypothesis(lm_2016, "clog_inc = 1")
+```
+
+## EPAMIG 2017
+```{r}
+lm_2017 <- lm(clog_idx ~ clog_inc, data = data_2017)
+summary(lm_2017)
+anova(lm_2017)
+report(lm_2017)
+car::linearHypothesis(lm_2017, "clog_inc = 1")
+```
+
+## EPAMIG 2018
+```{r}
+lm_2018 <- lm(clog_idx ~ clog_inc, data = data_2018)
+summary(lm_2018)
+anova(lm_2018)
+report(lm_2018)
+car::linearHypothesis(lm_2018, "clog_inc = 1")
+```
+
+## EPAMIG 2019
+```{r}
+lm_2019 <- lm(clog_idx ~ clog_inc, data = data_2019)
+summary(lm_2019)
+anova(lm_2019)
+report(lm_2019)
+car::linearHypothesis(lm_2019, "clog_inc = 1")
+```
+
+# Predition interval 
+## 2013
+```{r}
+
+predict_lm_2013 <- predict(lm_2013, data_2013, se.fit = TRUE,
+                           interval = "prediction")
+
+a.13 <- data.frame(predict_lm_2013) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2013 <- cbind(data_2013,a.13)
+
+
+```
+
+## 2014
+```{r}
+predict_lm_2014 <- predict(lm_2014, data_2014, se.fit = TRUE,
+                           interval = "prediction")
+
+a.14 <- data.frame(predict_lm_2014) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2014 <- cbind(data_2014,a.14)
+
+```
+
+## 2015
+```{r}
+predict_lm_2015 <- predict(lm_2015, data_2015, se.fit = TRUE,
+                           interval = "prediction")
+
+a.15 <- data.frame(predict_lm_2015) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2015 <- cbind(data_2015,a.15)
+```
+
+## 2016
+```{r}
+predict_lm_2016 <- predict(lm_2016, data_2016, se.fit = TRUE,
+                           interval = "prediction")
+
+a.16 <- data.frame(predict_lm_2016) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2016 <- cbind(data_2016,a.16)
+```
+
+## 2017
+```{r}
+predict_lm_2017 <- predict(lm_2017, data_2017, se.fit = TRUE,
+                           interval = "prediction")
+
+a.17 <- data.frame(predict_lm_2017) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2017 <- cbind(data_2017,a.17)
+```
+
+## 2018
+```{r}
+predict_lm_2018 <- predict(lm_2018, data_2018, se.fit = TRUE,
+                           interval = "prediction")
+
+a.18 <- data.frame(predict_lm_2018) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2018 <- cbind(data_2018,a.18)
+```
+
+## 2019
+```{r}
+predict_lm_2019 <- predict(lm_2019, data_2019, se.fit = TRUE,
+                           interval = "prediction")
+
+a.19 <- data.frame(predict_lm_2019) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+data_2019 <- cbind(data_2019,a.19)
+```
+
+## EPAMIG Pooled data
+```{r}
+predict_lm_pooled <- predict(lm_pooled, epamig_data, se.fit = TRUE,
+                           interval = "prediction")
+
+a.pooled <- data.frame(predict_lm_pooled) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+epamig_data <- cbind(epamig_data,a.pooled)
+```
+## UFTs data
+
+```{r}
+predict_lm_pooled_rede <- predict(lm_pooled_rede, rede_data, se.fit = TRUE,
+                           interval = "prediction")
+
+a.pooled_rede <- data.frame(predict_lm_pooled_rede) %>% 
+  rownames_to_column(var = "ID") %>% 
+  dplyr::select(-c(6,7))
+
+rede_data <- cbind(rede_data,a.pooled_rede)
+
+
+```
+
+
+# MSE
+```{r}
+S_2013 <- summary(lm_2013)
+MSE_2013 <- mean(S_2013$residuals^2)
+
+S_2014 <- summary(lm_2014)
+MSE_2014 <- mean(S_2014$residuals^2)
+
+S_2015 <- summary(lm_2015)
+MSE_2015 <- mean(S_2015$residuals^2)
+
+S_2016 <- summary(lm_2016)
+MSE_2016 <- mean(S_2016$residuals^2)
+
+S_2017 <- summary(lm_2017)
+MSE_2017 <- mean(S_2017$residuals^2)
+
+S_2018 <- summary(lm_2018)
+MSE_2018 <- mean(S_2018$residuals^2)
+
+S_2019 <- summary(lm_2019)
+MSE_2019 <- mean(S_2019$residuals^2)
+
+S_pool <- summary(lm_pooled)
+MSE_pool <- mean(S_pool$residuals^2)
+
+S_pool_rede <- summary(lm_pooled_rede)
+MSE_pool_rede <- mean(S_pool_rede$residual^2)
+```
+
+
+# V
+## 2013 
+```{r}
+se_b0_2013<- S_2013$coefficients[3]
+V_b0_2013 <- MSE_2013 + se_b0_2013^2
+```
+## 2014
+```{r}
+se_b0_2014 <- S_2014$coefficients[3]
+V_b0_2014 <- MSE_2014 + se_b0_2014^2
+```
+## 2015
+```{r}
+se_b0_2015 <- S_2015$coefficients[3]
+V_b0_2015 <- MSE_2015 + se_b0_2015^2
+```
+## 2016
+```{r}
+se_b0_2016 <- S_2016$coefficients[3]
+V_b0_2016 <- MSE_2016 + se_b0_2016^2
+```
+## 2017
+```{r}
+se_b0_2017 <- S_2017$coefficients[3]
+V_b0_2017 <- MSE_2017 + se_b0_2017^2
+```
+## 2018
+```{r}
+se_b0_2018 <- S_2018$coefficients[3]
+V_b0_2018 <- MSE_2018 + se_b0_2018^2
+```
+## 2019
+```{r}
+se_b0_2019 <- S_2019$coefficients[3]
+V_b0_2019 <- MSE_2019 + se_b0_2019^2
+```
+## EPAMIG pooled data
+```{r}
+se_b0_pooled <- S_pool$coefficients[3]
+V_b0_pooled <- MSE_pool + se_b0_pooled^2
+```
+## UFTs data
+```{r}
+se_b0_pooled_rede <- S_pool_rede$coefficients[3]
+V_b0_pooled_rede <- MSE_pool_rede + se_b0_pooled_rede^2
+```
+
+
+# Correlation between predicted severity and actual values 
+## 2013
+```{r}
+
+predict_lm_2013 <- predict(lm_2013, data_2013, type = "response")
+
+plot(data_2013$clog_idx, predict_lm_2013)
+
+cor(data_2013$clog_idx, predict_lm_2013)^2
+
+```
+
+## 2014
+```{r}
+predict_lm_2014 <- predict(lm_2014, data_2014, type = "response")
+
+plot(data_2014$clog_idx, predict_lm_2014)
+
+cor(data_2014$clog_idx, predict_lm_2014)^2
+```
+
+## 2015
+```{r}
+predict_lm_2015 <- predict(lm_2015, data_2015, type = "response")
+
+plot(data_2015$clog_idx, predict_lm_2015)
+
+cor(data_2015$clog_idx, predict_lm_2015)^2
+```
+
+## 2016
+```{r}
+predict_lm_2016 <- predict(lm_2016, data_2016, type = "response")
+
+plot(data_2016$clog_idx, predict_lm_2016)
+
+cor(data_2016$clog_idx, predict_lm_2016)^2
+```
+
+## 2017
+```{r}
+predict_lm_2017 <- predict(lm_2017, data_2017, type = "response")
+
+plot(data_2017$clog_idx, predict_lm_2017)
+
+cor(data_2017$clog_idx, predict_lm_2017)^2
+```
+
+## 2018
+```{r}
+predict_lm_2018 <- predict(lm_2018, data_2018, type = "response")
+
+plot(data_2018$clog_idx, predict_lm_2018)
+
+cor(data_2018$clog_idx, predict_lm_2018)^2
+```
+
+## 2019
+```{r}
+predict_lm_2019 <- predict(lm_2019, data_2019, type = "response")
+
+plot(data_2019$clog_idx, predict_lm_2019)
+
+cor(data_2019$clog_idx, predict_lm_2019)^2
+```
+
+## EPAMIG pooled data
+```{r}
+predict_lm_pooled <- predict(lm_pooled, epamig_data, type = "response")
+
+plot(epamig_data$clog_idx, predict_lm_pooled)
+
+cor(epamig_data$clog_idx, predict_lm_pooled)^2
+```
+
+## UFTs data 
+
+```{r}
+predict_lm_pooled_rede <- predict(lm_pooled_rede, rede_data, type = "response")
+
+plot(rede_data$clog_idx, predict_lm_pooled_rede)
+
+cor(rede_data$clog_idx, predict_lm_pooled_rede)^2
+```
+
+
+# Prediciton of INC
+
+## Extraction of Lm coefficients
+```{r}
+b0_2013 <- lm_2013$coefficients[1]
+b1_2013 <- lm_2013$coefficients[2]
+
+b0_2014 <- lm_2014$coefficients[1]
+b1_2014 <- lm_2014$coefficients[2]
+
+b0_2015 <- lm_2015$coefficients[1]
+b1_2015 <- lm_2015$coefficients[2]
+
+b0_2016 <- lm_2016$coefficients[1]
+b1_2016 <- lm_2016$coefficients[2]
+
+b0_2017 <- lm_2017$coefficients[1]
+b1_2017 <- lm_2017$coefficients[2]
+
+b0_2018 <- lm_2018$coefficients[1]
+b1_2018 <- lm_2018$coefficients[2]
+
+b0_2019 <- lm_2019$coefficients[1]
+b1_2019 <- lm_2019$coefficients[2]
+
+b0_pooled <- lm_pooled$coefficients[1]
+b1_pooled <- lm_pooled$coefficients[2]
+
+b0_pooled_rede <- lm_pooled_rede$coefficients[1]
+b1_pooled_rede <- lm_pooled_rede$coefficients[2]
+```
+
+## Prediction of the incidence from a known severity (10%)
+```{r}
+# complementary log-log transformation function
+CLL = function(X){
+  log(-log(1 - X))
+}
+
+
+idx10 <- CLL(0.1)
+
+inc_10_2013 <- 1 - exp( -exp((idx10 - b0_2013)/b1_2013)) 
+
+inc_10_2014 <- 1 - exp( -exp((idx10 - b0_2014)/b1_2014))
+
+inc_10_2015 <- 1 - exp( -exp((idx10 - b0_2015)/b1_2015))
+
+inc_10_2016 <- 1 - exp( -exp((idx10 - b0_2016)/b1_2016))
+
+inc_10_2017 <- 1 - exp( -exp((idx10 - b0_2017)/b1_2017))
+
+inc_10_2018 <- 1 - exp( -exp((idx10 - b0_2018)/b1_2018))
+
+inc_10_2019 <- 1 - exp( -exp((idx10 - b0_2019)/b1_2019))
+
+inc_10_pooled <- 1 - exp( -exp((idx10 - b0_pooled)/b1_pooled))
+
+inc_10_pooled_rede <- 1 - exp( -exp((idx10 - b0_pooled_rede)/b1_pooled_rede))
+```
+
+## Prediction of the severity from incidence
+
+```{r}
+sev_2013 <- 1 - exp(-exp(b0_2013 + (b1_2013 * CLL(0.2))))
+
+sev_2014 <- 1 - exp(-exp(b0_2014 + (b1_2014 * CLL(0.2))))
+
+sev_2015 <- 1 - exp(-exp(b0_2015 + (b1_2015 * CLL(0.2))))
+
+sev_2016 <- 1 - exp(-exp(b0_2016 + (b1_2016 * CLL(0.2))))
+
+sev_2017 <- 1 - exp(-exp(b0_2017 + (b1_2017 * CLL(0.2))))
+
+sev_2018 <- 1 - exp(-exp(b0_2018 + (b1_2018 * CLL(0.2))))
+
+sev_2019 <- 1 - exp(-exp(b0_2019 + (b1_2019 * CLL(0.2))))
+
+sev_pooled <- 1 - exp(-exp(b0_pooled + (b1_pooled * CLL(0.2))))
+
+sev_pooled_rede <- 1 - exp(-exp(b0_pooled_rede + (b1_pooled_rede * CLL(0.2))))
+```
+
+
+# Graphics 
+
+## Boxplot EPAMIG
+```{r}
+box01 <- epamig_data %>% 
+  ggplot(aes(as.factor(year),(inc/100)))+ 
+  # geom_jitter(width = 0.2,
+              # size = 1.3,
+              # alpha = 0.3)+
+  geom_boxplot(alpha = 0.2,
+               outlier.shape = NA, 
+               size = 0.9,
+               width = 0.7)+
+  scale_color_colorblind()+
+  scale_fill_colorblind()+
+  theme_half_open()+
+  xlab("EPAMIG")+
+  ylab("Incidence")+
+  theme(legend.position = "top")+
+  labs(color = "Cultivar", fill = "Cultivar")
+
+
+box02 <- epamig_data %>% 
+  ggplot(aes(as.factor(year),(idx/100)))+ 
+  # geom_jitter(width = 0.2,
+              # size = 1.3,
+              # alpha = 0.3)+
+  geom_boxplot(alpha = 0.2,
+               outlier.shape = NA, 
+               size = 0.9,
+               width = 0.7)+
+  scale_color_colorblind()+
+  scale_fill_colorblind()+
+  theme_half_open()+
+  xlab("EPAMIG")+
+  ylab("Severity")+
+  theme(legend.position = "top")+
+  labs(color = "Cultivar",
+       fill = "Cultivar")
+       
+
+
+```
+
+## Boxplot UFTs 
+
+```{r}
+box03 <- rede_data %>% 
+  mutate(graf = "UFTs") %>% 
+  ggplot(aes(graf, (inc_rede/100))) + 
+  geom_boxplot(alpha = 0.2,
+               outlier.shape = NA, 
+               size = 0.9,
+               width = 0.3)+
+  scale_color_colorblind()+
+  scale_fill_colorblind()+
+  theme_half_open()+
+  xlab("UFTs")+
+  ylab("")+
+  theme(legend.position = "top",
+        axis.text.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank())
+  
+box04 <- rede_data %>% 
+  mutate(graf = "UFTs") %>% 
+  ggplot(aes(graf, (idx_rede/100))) + 
+  geom_boxplot(alpha = 0.2,
+               outlier.shape = NA, 
+               size = 0.9,
+               width = 0.3)+
+  scale_color_colorblind()+
+  scale_fill_colorblind()+
+  theme_half_open()+
+  xlab("UFTs")+
+  ylab("")+
+  theme(legend.position = "top",
+        axis.text.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid = element_blank())
+  
+
+
+
+```
+
+
+## Histograms 
+
+```{r}
+
+hist01 <- epamig_data %>% 
+  ggplot(aes(inc))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 35.70,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("I (%)")+
+  theme_minimal_hgrid()
+
+```
+
+```{r}
+hist02 <- epamig_data %>% 
+  ggplot(aes(dhs))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 53.04,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("DHS (%)")+
+  theme_minimal_hgrid()
+
+```
+
+```{r}
+hist03 <- epamig_data %>% 
+  ggplot(aes(idx))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 22.60,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("S (%)")+
+  theme_minimal_hgrid()
+```
+
+```{r}
+
+hist01_rede <- rede_data %>% 
+  ggplot(aes(inc_rede))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 41.85,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("I (%)")+
+  theme_minimal_hgrid()
+
+```
+
+```{r}
+
+hist02_rede <- rede_data %>% 
+  ggplot(aes(sev_mean))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 31.75,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("DHS (%)")+
+  theme_minimal_hgrid()
+
+```
+
+```{r}
+hist03_rede <- rede_data %>% 
+  ggplot(aes(idx_rede))+
+  geom_histogram(color = "black",
+                 fill = "black",
+                 alpha = 0.1)+
+  geom_vline(xintercept = 22.9,
+             size = 1.2,
+             linetype = 2)+
+  ylab("")+
+  xlab("S (%)")+
+  theme_minimal_hgrid()
+```
+
+
+## Patchwork of histograms and boxplots 
+
+```{r message=FALSE, warning=FALSE}
+layout <- "
+AABBCC
+DDEEFF
+GGGGHH
+IIIIJJ
+"
+hist01 + hist02 + hist03 + hist01_rede + hist02_rede + hist03_rede + box01 + box03 + box02 + box04 +
+  plot_layout(design = layout)+
+  plot_annotation(tag_levels = 'A')
+
+ggsave("figures/boxplot_histo.png", width = 6, height = 9)
+```
+
+
+## Regression graphics (CLL) and back-transformad data
+
+### 2013 CLL
+
+```{r warning=FALSE}
+
+GCLL_2013 <- data_2013 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2013, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2013, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2013, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2013)+
+  ylab("CLL Severity ")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+
+```
+
+
+### 2013 Back-transformation 
+
+
+```{r warning=FALSE}
+
+GB_2013 <- data_2013 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2013, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2013, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2013, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2013)+
+  coord_fixed()+
+  theme_half_open()
+
+
+```
+
+### 2014 CLL
+
+```{r warning=FALSE}
+
+GCLL_2014 <- data_2014 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2014, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2014, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2014, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2014)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+  
+
+```
+
+
+### 2014 Back-transformed data
+
+```{r warning=FALSE}
+
+GB_2014 <- data_2014 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2014, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2014, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2014, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2014)+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+
+### 2015 CLL
+
+```{r warning=FALSE}
+
+
+
+GCLL_2015 <- data_2015 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2015, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2015, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2015, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2015)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+  
+  
+
+
+```
+
+### 2015 Back-trasformed 
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_2015 <- (b0_2015 + (b1_2015*seq01))
+
+# graf_2015 <- data.frame(incidx_2015) 
+
+
+
+GB_2015 <- data_2015 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2015, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2015, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2015, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2015)+
+  coord_fixed()+
+  theme_half_open()
+
+
+
+```
+
+
+### 2016 CLL
+
+```{r warning=FALSE}
+
+
+
+GCLL_2016 <- data_2016 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2016, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2016, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2016, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2016)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+
+```
+
+### 2016 Back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_2016 <- (b0_2016 + (b1_2016*seq01))
+
+# graf_2016 <- data.frame(incidx_2016) 
+
+
+
+GB_2016 <- data_2016 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2016, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2016, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2016, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2016)+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+### 2017 CLL
+
+```{r warning=FALSE}
+
+
+
+GCLL_2017 <- data_2017 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2017, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2017, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2017, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2017)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+```
+
+### 2017 back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_2017 <- (b0_2017 + (b1_2017*seq01))
+
+# graf_2017 <- data.frame(incidx_2017) 
+
+
+
+GB_2017 <- data_2017 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2017, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2017, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2017, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2017)+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+
+### 2018 CLL
+
+```{r warning=FALSE}
+
+
+
+GCLL_2018 <- data_2018 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2018, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2018, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2018, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2018)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+```
+
+### 2018 Back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_2018 <- (b0_2018 + (b1_2018*seq01))
+
+# graf_2018 <- data.frame(incidx_2018) 
+
+
+GB_2018 = data_2018 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2018, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2018, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2018, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2018)+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+
+### 2019 CLL
+
+```{r warning=FALSE}
+
+
+GCLL_2019 = data_2019 %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2019, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = data_2019, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = data_2019, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = 2019)+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+```
+
+### 2019 Back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_2019 <- (b0_2019 + (b1_2019*seq01))
+
+# graf_2019 <- data.frame(incidx_2019) 
+
+
+GB_2019 = data_2019 %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.5,
+             width = 0.5)+
+  geom_line(data = data_2019, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = data_2019, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = data_2019, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = 2019)+
+  coord_fixed()+
+  theme_half_open()
+```
+
+### Pooled CLL
+
+```{r warning=FALSE}
+
+
+GCLL_pool <- epamig_data %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.1,
+             width = 0.5)+
+  geom_line(data = epamig_data, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = epamig_data, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = epamig_data, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = "EPAMIG")+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+```
+
+
+### Pooled Back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1) 
+
+# incidx_pooled <- (b0_pooled + (b1_pooled*seq01))
+
+# graf_pooled <- data.frame(incidx_pooled) 
+
+
+
+GB_pool <- epamig_data %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.1,
+             width = 0.5)+
+  geom_line(data = epamig_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = epamig_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = epamig_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = "EPAMIG")+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+### Pooled rede
+
+```{r warning=FALSE}
+GCLL_pool_rede <- rede_data %>% 
+  ggplot(aes(clog_inc, clog_idx))+
+  geom_point(size = 2, 
+             color = "black",
+             alpha = 0.1,
+             width = 0.5)+
+  geom_line(data = rede_data, aes(clog_inc, fit.fit),
+            size = 1.2)+
+  geom_line(data = rede_data, aes(clog_inc, fit.lwr),
+            linetype = 2,
+            size = 0.5)+
+  geom_line(data = rede_data, aes(clog_inc, fit.upr),
+            linetype = 2,
+            size = 0.5)+
+  xlim(-6,1)+
+  ylim(-6,1)+
+  labs(title = "UFTs")+
+  ylab("CLL Severity")+
+  xlab("CLL Incidence")+
+  coord_fixed()+
+  # ylim(-6, 2)+
+  theme_half_open()
+
+```
+
+
+### Pooled Rede Back-transformed
+
+```{r warning=FALSE}
+
+# seq01 <- seq(-4.60, cem, by = 0.1)
+
+# incidx_pooled <- (b0_pooled + (b1_pooled*seq01))
+
+# graf_pooled <- data.frame(incidx_pooled) 
+
+
+
+GB_pool_rede <- rede_data %>% 
+  ggplot(aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(clog_idx)))))+
+  geom_point(color = "black",
+             size = 2,
+             alpha = 0.1,
+             width = 0.5)+
+  geom_line(data = rede_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.fit)))),
+            size = 1.5)+
+  geom_line(data = rede_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.lwr)))),
+            size = 0.5,
+            linetype = 2)+
+  geom_line(data = rede_data, aes((1 - exp(-exp(clog_inc))), (1 - exp(-exp(fit.upr)))),
+            size = 0.5,
+            linetype = 2)+
+  ylab("Severity")+
+  xlab("Incidence")+
+  xlim(0,1)+
+  ylim(0,1)+
+  labs(title = "UFTs")+
+  coord_fixed()+
+  theme_half_open()
+
+```
+
+GCLL_2013 GB_2013
+## Patchwork
+### CLL
+```{r message=FALSE, warning=FALSE}
+
+(GCLL_2013 + GCLL_2014 + GCLL_2015 + GCLL_2016 + GCLL_2017 + GCLL_2018 + GCLL_2019)+ 
+  plot_layout(ncol = 2)
+
+ggsave("figures/CLLplots02.png", width = 13, height = 15)
+
+
+```
+
+
+### Back-transformed
+
+```{r message=FALSE, warning=FALSE}
+
+(GB_2013 + GB_2014 + GB_2015 + GB_2016 + GB_2017 + GB_2018 + GB_2019)+ 
+  plot_layout(ncol = 2)
+  
+ggsave("figures/BTplots02.png", width = 13, height = 15)
+
+```
+
+
+### Pooleds
+
+```{r message=FALSE, warning=FALSE}
+(GCLL_pool + GCLL_pool_rede +  GB_pool +  GB_pool_rede)+ 
+  plot_layout(ncol = 2)
+  
+ggsave("figures/Pooleds.png", width = 7, height = 7)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
