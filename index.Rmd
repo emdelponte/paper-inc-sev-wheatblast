@@ -11,39 +11,38 @@ output:
       collapsed: yes
       smooth_scroll: yes
 date: 'Created: 2021-10-06 <br/>Last update: `r Sys.Date()`'
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Packages 
+# The report
+
+This report aims to demonstrate, using R programming, all the steps of the analysis of the *I-S* relationship for the wheat blast pathosystem, from data preparation to presentation of the results, in a way that anyone who is interested in the area and wants to reproduce the analysis can do this. The data, codes, pre-print version of the article and supplementary materials were also made available at this GitHub repository. The report is the html output of an R markdown file prepared whit R Studio IDE for R. The plots were prepared using the `ggplot2` package.
+
+# Packages
+
+First we need to load the R packages.
+
 ```{r message=FALSE, warning=FALSE}
 
 library(tidyverse)
-library(ggplot2)
-library(metafor)
-library(car)
-library(ggthemes)
-library(cowplot)
-library(scales)
-library(dplyr)
 library(readxl)
-library(lme4)
-library(lmerTest)
+library(ggplot2)
+library(cowplot)
+library(ggthemes)
+library(car)
 library(report)
 library(patchwork)
-library(merTools)
-library(ciTools)
-library(parameters)
-library(performance)
-library(see)
-library(data.table)
 
 ```
- 
 
-# Importing data 
+# Importing data
+
+    The data was organized in the long or lard format where each column is a variable and each observation is placed in a row. The code to import data is: 
 
 ```{r}
 
@@ -53,6 +52,7 @@ general_slim_data <- read_excel("Data/generalslim_data.xlsx")
 
 ```
 
+Here we create a simple point plot using the `ggplot2` package to quickly observe the average distribution of the data from both data sets
 
 ```{r}
 
@@ -64,19 +64,22 @@ general_slim_data %>%
 
 ```
 
+# Summary and data transformation
 
-
-# Summary and data transformation 
+To accomplish some particularities of the analysis, some summarization, and transformation of the data where necessary. Here we were first creating the variable index (also called severity) in our data, the transformation is the result of the multiplication of incidence and conditional severity divides by 100. After all values of index equal to zero were removed from the data, it is because there isn't a relationship between incidence and severity in the absence of disease. In addition, due to the mathematical stability of the complementary log-log (*CLL*) transformation utilized in the analysis, all values of incidence and index equal to 100% were substituted for 99.9%. The *CLL* transformation was expressed by ln(-ln(1- (inc(%)/100))) or ln(-ln(1- (idx(%)/100))). Note that to the transformation works it is necessary that the values of the disease intensity measue are in proportion (between 0 and 1).
 
 ```{r}
 
 epamig_data <- data_epamig %>% 
   mutate(idx = (inc*dhs)/100) %>% 
   relocate(idx, .before = tgw) %>% 
-  mutate(clog_inc = log(-log(1 - (inc/100))),
-         clog_idx = log(-log(1 - (idx/100)))) %>% 
   dplyr::filter(idx > 0) %>% 
-  dplyr::filter(!cultivar == "SINTONIA")
+  dplyr::filter(!cultivar == "SINTONIA") %>% 
+  mutate(clog_inc = log(-log(1 - (inc/100))),
+         clog_idx = log(-log(1 - (idx/100))))
+  
+
+
 
 rede_data <- general_slim_data %>% 
   dplyr::filter(source == "REC-Embrapa") %>% 
@@ -91,20 +94,24 @@ rede_data <- general_slim_data %>%
 
 ```
 
-# Interactions 
+# Interactions
+
+In this section, we are testing for the EPAMIG data if there is a significant influence of the years and cultivar in the incidence severity relationship. For this test, year and cultivar were used as moderator variables in ordinal linear regression, the significance of the effect was tested using an ANOVA test.
+
 ```{r}
 
 aa <- lm(clog_idx ~ clog_inc*year, data = epamig_data)
 bb <- lm(clog_idx ~ clog_inc*cultivar, data = epamig_data)
-
+ 
 anova(aa)
 anova(bb)
 
 
 ```
 
+# Separating the EPAMIG data
 
-# Separating the EPAMIG data for each year
+Due to the significant influence of the year as a moderator variable, we separated the EPAMIG data into the 7 years of experiments, for the following analysis.
 
 ```{r}
 
@@ -130,9 +137,12 @@ data_2019 <- epamig_data %>%
   filter(year == 2019)
 ```
 
-# Linear Regression model 
+# Linear Regression model
+
+In this section we fitted a, ordinary linear regression model to UFTs data, to the pooled EPAMIG data and to data from each year of the EPAMIG data. In additional, we summarise the parameters and coefficients of each model, and using the `linearHypothesis` function of the `car` package we verify if the slopes are significantly different of 1.
 
 ## UFTs data
+
 ```{r}
 lm_pooled_rede <- lm(clog_idx ~ clog_inc, data = rede_data)
 summary(lm_pooled_rede)
@@ -141,7 +151,8 @@ anova(lm_pooled_rede)
 car::linearHypothesis(lm_pooled_rede, "clog_inc = 1")
 ```
 
-## EPAMIG pooled data 
+## EPAMIG pooled data
+
 ```{r}
 lm_pooled <- lm(clog_idx ~ clog_inc, data = epamig_data)
 summary(lm_pooled)
@@ -151,6 +162,7 @@ car::linearHypothesis(lm_pooled, "clog_inc = 1")
 ```
 
 ## 2013
+
 ```{r}
 lm_2013 <- lm(clog_idx ~ clog_inc, data = data_2013)
 summary(lm_2013)
@@ -160,6 +172,7 @@ car::linearHypothesis(lm_2013, "clog_inc = 1")
 ```
 
 ## 2014
+
 ```{r}
 lm_2014 <- lm(clog_idx ~ clog_inc, data = data_2014)
 summary(lm_2014)
@@ -169,6 +182,7 @@ car::linearHypothesis(lm_2014, "clog_inc = 1")
 ```
 
 ## 2015
+
 ```{r}
 lm_2015 <- lm(clog_idx ~ clog_inc, data = data_2015)
 summary(lm_2015)
@@ -178,6 +192,7 @@ car::linearHypothesis(lm_2015, "clog_inc = 1")
 ```
 
 ## 2016
+
 ```{r}
 lm_2016 <- lm(clog_idx ~ clog_inc, data = data_2016)
 summary(lm_2016)
@@ -187,6 +202,7 @@ car::linearHypothesis(lm_2016, "clog_inc = 1")
 ```
 
 ## EPAMIG 2017
+
 ```{r}
 lm_2017 <- lm(clog_idx ~ clog_inc, data = data_2017)
 summary(lm_2017)
@@ -196,6 +212,7 @@ car::linearHypothesis(lm_2017, "clog_inc = 1")
 ```
 
 ## EPAMIG 2018
+
 ```{r}
 lm_2018 <- lm(clog_idx ~ clog_inc, data = data_2018)
 summary(lm_2018)
@@ -205,6 +222,7 @@ car::linearHypothesis(lm_2018, "clog_inc = 1")
 ```
 
 ## EPAMIG 2019
+
 ```{r}
 lm_2019 <- lm(clog_idx ~ clog_inc, data = data_2019)
 summary(lm_2019)
@@ -213,8 +231,12 @@ report(lm_2019)
 car::linearHypothesis(lm_2019, "clog_inc = 1")
 ```
 
-# Predition interval 
+# Predition interval
+
+In this section, we are extracting from the model the values to build the predictions intervals of our severity predictions to each one of the nine datasets. To do this, we use the `predict` function from the `stats` package.
+
 ## 2013
+
 ```{r}
 
 predict_lm_2013 <- predict(lm_2013, data_2013, se.fit = TRUE,
@@ -230,6 +252,7 @@ data_2013 <- cbind(data_2013,a.13)
 ```
 
 ## 2014
+
 ```{r}
 predict_lm_2014 <- predict(lm_2014, data_2014, se.fit = TRUE,
                            interval = "prediction")
@@ -243,6 +266,7 @@ data_2014 <- cbind(data_2014,a.14)
 ```
 
 ## 2015
+
 ```{r}
 predict_lm_2015 <- predict(lm_2015, data_2015, se.fit = TRUE,
                            interval = "prediction")
@@ -255,6 +279,7 @@ data_2015 <- cbind(data_2015,a.15)
 ```
 
 ## 2016
+
 ```{r}
 predict_lm_2016 <- predict(lm_2016, data_2016, se.fit = TRUE,
                            interval = "prediction")
@@ -267,6 +292,7 @@ data_2016 <- cbind(data_2016,a.16)
 ```
 
 ## 2017
+
 ```{r}
 predict_lm_2017 <- predict(lm_2017, data_2017, se.fit = TRUE,
                            interval = "prediction")
@@ -279,6 +305,7 @@ data_2017 <- cbind(data_2017,a.17)
 ```
 
 ## 2018
+
 ```{r}
 predict_lm_2018 <- predict(lm_2018, data_2018, se.fit = TRUE,
                            interval = "prediction")
@@ -291,6 +318,7 @@ data_2018 <- cbind(data_2018,a.18)
 ```
 
 ## 2019
+
 ```{r}
 predict_lm_2019 <- predict(lm_2019, data_2019, se.fit = TRUE,
                            interval = "prediction")
@@ -303,6 +331,7 @@ data_2019 <- cbind(data_2019,a.19)
 ```
 
 ## EPAMIG Pooled data
+
 ```{r}
 predict_lm_pooled <- predict(lm_pooled, epamig_data, se.fit = TRUE,
                            interval = "prediction")
@@ -313,6 +342,7 @@ a.pooled <- data.frame(predict_lm_pooled) %>%
 
 epamig_data <- cbind(epamig_data,a.pooled)
 ```
+
 ## UFTs data
 
 ```{r}
@@ -328,88 +358,12 @@ rede_data <- cbind(rede_data,a.pooled_rede)
 
 ```
 
+# Square correlation (R2)
 
-# MSE
-```{r}
-S_2013 <- summary(lm_2013)
-MSE_2013 <- mean(S_2013$residuals^2)
+The square correlation (*R^2^*) between the predicted severity (*Ŝ*) and the severity values of the data (*S*) was utilized to verify the quality of each model fit. To the square correlation, the function `cor` of the `stats` package was utilized.
 
-S_2014 <- summary(lm_2014)
-MSE_2014 <- mean(S_2014$residuals^2)
-
-S_2015 <- summary(lm_2015)
-MSE_2015 <- mean(S_2015$residuals^2)
-
-S_2016 <- summary(lm_2016)
-MSE_2016 <- mean(S_2016$residuals^2)
-
-S_2017 <- summary(lm_2017)
-MSE_2017 <- mean(S_2017$residuals^2)
-
-S_2018 <- summary(lm_2018)
-MSE_2018 <- mean(S_2018$residuals^2)
-
-S_2019 <- summary(lm_2019)
-MSE_2019 <- mean(S_2019$residuals^2)
-
-S_pool <- summary(lm_pooled)
-MSE_pool <- mean(S_pool$residuals^2)
-
-S_pool_rede <- summary(lm_pooled_rede)
-MSE_pool_rede <- mean(S_pool_rede$residual^2)
-```
-
-
-# V
-## 2013 
-```{r}
-se_b0_2013<- S_2013$coefficients[3]
-V_b0_2013 <- MSE_2013 + se_b0_2013^2
-```
-## 2014
-```{r}
-se_b0_2014 <- S_2014$coefficients[3]
-V_b0_2014 <- MSE_2014 + se_b0_2014^2
-```
-## 2015
-```{r}
-se_b0_2015 <- S_2015$coefficients[3]
-V_b0_2015 <- MSE_2015 + se_b0_2015^2
-```
-## 2016
-```{r}
-se_b0_2016 <- S_2016$coefficients[3]
-V_b0_2016 <- MSE_2016 + se_b0_2016^2
-```
-## 2017
-```{r}
-se_b0_2017 <- S_2017$coefficients[3]
-V_b0_2017 <- MSE_2017 + se_b0_2017^2
-```
-## 2018
-```{r}
-se_b0_2018 <- S_2018$coefficients[3]
-V_b0_2018 <- MSE_2018 + se_b0_2018^2
-```
-## 2019
-```{r}
-se_b0_2019 <- S_2019$coefficients[3]
-V_b0_2019 <- MSE_2019 + se_b0_2019^2
-```
-## EPAMIG pooled data
-```{r}
-se_b0_pooled <- S_pool$coefficients[3]
-V_b0_pooled <- MSE_pool + se_b0_pooled^2
-```
-## UFTs data
-```{r}
-se_b0_pooled_rede <- S_pool_rede$coefficients[3]
-V_b0_pooled_rede <- MSE_pool_rede + se_b0_pooled_rede^2
-```
-
-
-# Correlation between predicted severity and actual values 
 ## 2013
+
 ```{r}
 
 predict_lm_2013 <- predict(lm_2013, data_2013, type = "response")
@@ -421,6 +375,7 @@ cor(data_2013$clog_idx, predict_lm_2013)^2
 ```
 
 ## 2014
+
 ```{r}
 predict_lm_2014 <- predict(lm_2014, data_2014, type = "response")
 
@@ -430,6 +385,7 @@ cor(data_2014$clog_idx, predict_lm_2014)^2
 ```
 
 ## 2015
+
 ```{r}
 predict_lm_2015 <- predict(lm_2015, data_2015, type = "response")
 
@@ -439,6 +395,7 @@ cor(data_2015$clog_idx, predict_lm_2015)^2
 ```
 
 ## 2016
+
 ```{r}
 predict_lm_2016 <- predict(lm_2016, data_2016, type = "response")
 
@@ -448,6 +405,7 @@ cor(data_2016$clog_idx, predict_lm_2016)^2
 ```
 
 ## 2017
+
 ```{r}
 predict_lm_2017 <- predict(lm_2017, data_2017, type = "response")
 
@@ -457,6 +415,7 @@ cor(data_2017$clog_idx, predict_lm_2017)^2
 ```
 
 ## 2018
+
 ```{r}
 predict_lm_2018 <- predict(lm_2018, data_2018, type = "response")
 
@@ -466,6 +425,7 @@ cor(data_2018$clog_idx, predict_lm_2018)^2
 ```
 
 ## 2019
+
 ```{r}
 predict_lm_2019 <- predict(lm_2019, data_2019, type = "response")
 
@@ -475,6 +435,7 @@ cor(data_2019$clog_idx, predict_lm_2019)^2
 ```
 
 ## EPAMIG pooled data
+
 ```{r}
 predict_lm_pooled <- predict(lm_pooled, epamig_data, type = "response")
 
@@ -483,7 +444,7 @@ plot(epamig_data$clog_idx, predict_lm_pooled)
 cor(epamig_data$clog_idx, predict_lm_pooled)^2
 ```
 
-## UFTs data 
+## UFTs data
 
 ```{r}
 predict_lm_pooled_rede <- predict(lm_pooled_rede, rede_data, type = "response")
@@ -493,10 +454,14 @@ plot(rede_data$clog_idx, predict_lm_pooled_rede)
 cor(rede_data$clog_idx, predict_lm_pooled_rede)^2
 ```
 
+# Predicitons
 
-# Prediciton of INC
+Here using the model's coefficients, we calculate two distinct predictions, the predicted severity (*Ŝ*) and a inverse prediction of the model that is the incidence when severity reaches 10% (*I^S^~10~*).
 
 ## Extraction of Lm coefficients
+
+First, we using the base functions of R we extract the coefficients (intercept and slope) from each model and we storage them in vectors.
+
 ```{r}
 b0_2013 <- lm_2013$coefficients[1]
 b1_2013 <- lm_2013$coefficients[2]
@@ -526,13 +491,49 @@ b0_pooled_rede <- lm_pooled_rede$coefficients[1]
 b1_pooled_rede <- lm_pooled_rede$coefficients[2]
 ```
 
-## Prediction of the incidence from a known severity (10%)
+## CLL function
+
+For both predictions were necessary to use the values of *S* or *I* at the *CLL( )* scale, so using the base code of the R, we created a function that gives us any value of severity or incidence (in proportion, 0 to 1) at the *CLL ( )* transformation.
+
 ```{r}
-# complementary log-log transformation function
 CLL = function(X){
   log(-log(1 - X))
 }
 
+```
+
+## Ŝ
+
+In both predictions, we want to visualize the *I^S^~10~* and the *Ŝ* at the regular scale, then a back-transformation of the *CLL ( )* was necessary.
+
+It is important to note that the model gives us predicted values of S at the *CLL( )* scale, so *Ŝ* was obtained by the back-transformation of *CLL ( )* that is given by: 1-exp(-exp(CLL(S)))
+
+```{r}
+sev_2013 <- 1 - exp(-exp(b0_2013 + (b1_2013 * CLL(0.2))))
+
+sev_2014 <- 1 - exp(-exp(b0_2014 + (b1_2014 * CLL(0.2))))
+
+sev_2015 <- 1 - exp(-exp(b0_2015 + (b1_2015 * CLL(0.2))))
+
+sev_2016 <- 1 - exp(-exp(b0_2016 + (b1_2016 * CLL(0.2))))
+
+sev_2017 <- 1 - exp(-exp(b0_2017 + (b1_2017 * CLL(0.2))))
+
+sev_2018 <- 1 - exp(-exp(b0_2018 + (b1_2018 * CLL(0.2))))
+
+sev_2019 <- 1 - exp(-exp(b0_2019 + (b1_2019 * CLL(0.2))))
+
+sev_pooled <- 1 - exp(-exp(b0_pooled + (b1_pooled * CLL(0.3))))
+
+sev_pooled_rede <- 1 - exp(-exp(b0_pooled_rede + (b1_pooled_rede * CLL(0.3))))
+```
+
+## I^S^~10~
+
+The I^S^~10~ is an inverse prediction of the model that we developed, and as for *S* the values predicted for the function are in the *CLL( )* scale, then again the back-transformation of *CLL ( )* was necessary.
+
+```{r}
+# complementary log-log transformation function
 
 idx10 <- CLL(0.1)
 
@@ -555,32 +556,14 @@ inc_10_pooled <- 1 - exp( -exp((idx10 - b0_pooled)/b1_pooled))
 inc_10_pooled_rede <- 1 - exp( -exp((idx10 - b0_pooled_rede)/b1_pooled_rede))
 ```
 
-## Prediction of the severity from incidence
+# Graphics
 
-```{r}
-sev_2013 <- 1 - exp(-exp(b0_2013 + (b1_2013 * CLL(0.2))))
+All the graphics were created using the `ggplot2` package, and the assembly of the graphics together was made using the `patchwork` package.
 
-sev_2014 <- 1 - exp(-exp(b0_2014 + (b1_2014 * CLL(0.2))))
-
-sev_2015 <- 1 - exp(-exp(b0_2015 + (b1_2015 * CLL(0.2))))
-
-sev_2016 <- 1 - exp(-exp(b0_2016 + (b1_2016 * CLL(0.2))))
-
-sev_2017 <- 1 - exp(-exp(b0_2017 + (b1_2017 * CLL(0.2))))
-
-sev_2018 <- 1 - exp(-exp(b0_2018 + (b1_2018 * CLL(0.2))))
-
-sev_2019 <- 1 - exp(-exp(b0_2019 + (b1_2019 * CLL(0.2))))
-
-sev_pooled <- 1 - exp(-exp(b0_pooled + (b1_pooled * CLL(0.2))))
-
-sev_pooled_rede <- 1 - exp(-exp(b0_pooled_rede + (b1_pooled_rede * CLL(0.2))))
-```
-
-
-# Graphics 
+We create graphics for each year of the EPAMIG data and for both pooled data (EPAMIG and UFTs).
 
 ## Boxplot EPAMIG
+
 ```{r}
 box01 <- epamig_data %>% 
   ggplot(aes(as.factor(year),(inc/100)))+ 
@@ -622,7 +605,7 @@ box02 <- epamig_data %>%
 
 ```
 
-## Boxplot UFTs 
+## Boxplot UFTs
 
 ```{r}
 box03 <- rede_data %>% 
@@ -666,8 +649,7 @@ box04 <- rede_data %>%
 
 ```
 
-
-## Histograms 
+## Histograms
 
 ```{r}
 
@@ -760,8 +742,7 @@ hist03_rede <- rede_data %>%
   theme_minimal_hgrid()
 ```
 
-
-## Patchwork of histograms and boxplots 
+## Patchwork of histograms and boxplots
 
 ```{r message=FALSE, warning=FALSE}
 layout <- "
@@ -776,7 +757,6 @@ hist01 + hist02 + hist03 + hist01_rede + hist02_rede + hist03_rede + box01 + box
 
 ggsave("figures/boxplot_histo.png", width = 6, height = 9)
 ```
-
 
 ## Regression graphics (CLL) and back-transformad data
 
@@ -810,9 +790,7 @@ GCLL_2013 <- data_2013 %>%
 
 ```
 
-
-### 2013 Back-transformation 
-
+### 2013 Back-transformation
 
 ```{r warning=FALSE}
 
@@ -871,7 +849,6 @@ GCLL_2014 <- data_2014 %>%
 
 ```
 
-
 ### 2014 Back-transformed data
 
 ```{r warning=FALSE}
@@ -899,7 +876,6 @@ GB_2014 <- data_2014 %>%
   theme_half_open()
 
 ```
-
 
 ### 2015 CLL
 
@@ -935,7 +911,7 @@ GCLL_2015 <- data_2015 %>%
 
 ```
 
-### 2015 Back-trasformed 
+### 2015 Back-trasformed
 
 ```{r warning=FALSE}
 
@@ -972,7 +948,6 @@ GB_2015 <- data_2015 %>%
 
 
 ```
-
 
 ### 2016 CLL
 
@@ -1109,7 +1084,6 @@ GB_2017 <- data_2017 %>%
 
 ```
 
-
 ### 2018 CLL
 
 ```{r warning=FALSE}
@@ -1175,7 +1149,6 @@ GB_2018 = data_2018 %>%
   theme_half_open()
 
 ```
-
 
 ### 2019 CLL
 
@@ -1271,7 +1244,6 @@ GCLL_pool <- epamig_data %>%
 
 ```
 
-
 ### Pooled Back-transformed
 
 ```{r warning=FALSE}
@@ -1336,7 +1308,6 @@ GCLL_pool_rede <- rede_data %>%
 
 ```
 
-
 ### Pooled Rede Back-transformed
 
 ```{r warning=FALSE}
@@ -1373,9 +1344,8 @@ GB_pool_rede <- rede_data %>%
 
 ```
 
-GCLL_2013 GB_2013
-## Patchwork
-### CLL
+GCLL_2013 GB_2013 \#\# Patchwork \#\#\# CLL
+
 ```{r message=FALSE, warning=FALSE}
 
 (GCLL_2013 + GCLL_2014 + GCLL_2015 + GCLL_2016 + GCLL_2017 + GCLL_2018 + GCLL_2019)+ 
@@ -1385,7 +1355,6 @@ ggsave("figures/CLLplots02.png", width = 13, height = 15)
 
 
 ```
-
 
 ### Back-transformed
 
@@ -1398,7 +1367,6 @@ ggsave("figures/BTplots02.png", width = 13, height = 15)
 
 ```
 
-
 ### Pooleds
 
 ```{r message=FALSE, warning=FALSE}
@@ -1409,14 +1377,3 @@ ggsave("figures/Pooleds.png", width = 7, height = 7)
 
 
 ```
-
-
-
-
-
-
-
-
-
-
-
